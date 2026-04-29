@@ -112,7 +112,7 @@ struct ClientTests {
             captured = req
             return (jsonData(MindObjectStub()), httpResponse(status: 201))
         }
-        _ = try await makeClient().objects.create(.init(url: "https://example.com"))
+        _ = try await makeClient().objects.create(.init(url: URL(string: "https://example.com")))
         #expect(captured?.httpMethod == "POST")
         let ct = captured?.value(forHTTPHeaderField: "Content-Type") ?? ""
         #expect(ct.contains("application/json"))
