@@ -234,10 +234,38 @@ public class ClientTests
     }
 }
 
+// HttpContent subclass that ignores Dispose so buffered bytes remain readable
+// after DispatchAsync's `using (request)` block ends.
+file sealed class UndisposableContent : HttpContent
+{
+    private readonly byte[] _data;
+    public UndisposableContent(byte[] data, string? contentType)
+    {
+        _data = data;
+        if (contentType is not null)
+            Headers.TryAddWithoutValidation("Content-Type", contentType);
+    }
+    protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+        stream.WriteAsync(_data, 0, _data.Length);
+    protected override bool TryComputeLength(out long length) { length = _data.Length; return true; }
+    protected override void Dispose(bool disposing) { /* intentionally no base call — keeps _disposed false */ }
+}
+
 file sealed class LambdaHandler : HttpMessageHandler
 {
     private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
     public LambdaHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) => _handler = handler;
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken _) =>
-        _handler(request);
+
+    // DispatchAsync wraps the request in `using`, disposing JsonContent before the test can read it.
+    // Buffer into a StringContent so it survives disposal.
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    {
+        if (request.Content is { } content)
+        {
+            var bytes = await content.ReadAsByteArrayAsync(ct);
+            var mediaType = content.Headers.ContentType?.ToString();
+            request.Content = new UndisposableContent(bytes, mediaType);
+        }
+        return await _handler(request);
+    }
 }
