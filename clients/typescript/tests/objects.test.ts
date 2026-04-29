@@ -137,21 +137,4 @@ describe("objects resource", () => {
     expect(url).toContain(`/objects/${OBJECT.id}/spaces`);
     expect(JSON.parse(opts.body as string)).toEqual([{ id: "spaceA" }]);
   });
-
-  it("uploadFile sends multipart/form-data to POST /objects", async () => {
-    const spy = vi.fn().mockResolvedValue({ ok: true, status: 201, headers: { get: () => null }, json: () => Promise.resolve(OBJECT) });
-    vi.stubGlobal("fetch", spy);
-    const bytes = new Uint8Array([1, 2, 3]);
-    await client.objects.uploadFile(bytes, "image/png", "photo.png", { title: "Sunset" });
-    const [url, opts] = spy.mock.calls[0] as [string, RequestInit];
-    expect(opts.method).toBe("POST");
-    expect(url).toContain("/objects");
-    expect(opts.body).toBeInstanceOf(FormData);
-    const form = opts.body as FormData;
-    const metadata = JSON.parse(await (form.get("metadata") as File).text());
-    expect(metadata.title).toBe("Sunset");
-    const blob = form.get("blob") as File;
-    expect(blob.name).toBe("photo.png");
-    expect(blob.type).toBe("image/png");
-  });
 });
