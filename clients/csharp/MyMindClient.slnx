@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/MyMindClient.csproj" />
+  <Project Path="tests/MyMindClientTests.csproj" />
+</Solution>
