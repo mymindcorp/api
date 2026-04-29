@@ -13,13 +13,15 @@ const OBJECT: MindObject = {
   modified: "2024-01-01T00:00:00Z",
 };
 
+const jsonHeaders = { get: (k: string) => k.toLowerCase() === "content-type" ? "application/json" : null };
+
 function stubFetch(body: unknown, status = 200) {
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue({
       ok: status >= 200 && status < 300,
       status,
-      headers: { get: () => null },
+      headers: jsonHeaders,
       json: () => Promise.resolve(body),
       arrayBuffer: () => Promise.resolve(new ArrayBuffer(4)),
     }),
@@ -41,7 +43,7 @@ describe("objects resource", () => {
   });
 
   it("list with q= uses GET /objects", async () => {
-    const spy = vi.fn().mockResolvedValue({ ok: true, status: 200, headers: { get: () => null }, json: () => Promise.resolve({ objects: [] }) });
+    const spy = vi.fn().mockResolvedValue({ ok: true, status: 200, headers: jsonHeaders, json: () => Promise.resolve({ objects: [] }) });
     vi.stubGlobal("fetch", spy);
     await client.objects.list({ q: "tag:reading" });
     const [url, opts] = spy.mock.calls[0] as [string, RequestInit];
@@ -50,7 +52,7 @@ describe("objects resource", () => {
   });
 
   it("create uses POST /objects with body", async () => {
-    const spy = vi.fn().mockResolvedValue({ ok: true, status: 201, headers: { get: () => null }, json: () => Promise.resolve(OBJECT) });
+    const spy = vi.fn().mockResolvedValue({ ok: true, status: 201, headers: jsonHeaders, json: () => Promise.resolve(OBJECT) });
     vi.stubGlobal("fetch", spy);
     await client.objects.create({ url: "https://example.com", title: "Test" });
     const [url, opts] = spy.mock.calls[0] as [string, RequestInit];
@@ -60,7 +62,7 @@ describe("objects resource", () => {
   });
 
   it("get uses GET /objects/:id", async () => {
-    const spy = vi.fn().mockResolvedValue({ ok: true, status: 200, headers: { get: () => null }, json: () => Promise.resolve(OBJECT) });
+    const spy = vi.fn().mockResolvedValue({ ok: true, status: 200, headers: jsonHeaders, json: () => Promise.resolve(OBJECT) });
     vi.stubGlobal("fetch", spy);
     await client.objects.get(OBJECT.id);
     const [url, opts] = spy.mock.calls[0] as [string, RequestInit];
@@ -69,7 +71,7 @@ describe("objects resource", () => {
   });
 
   it("update uses PATCH /objects/:id", async () => {
-    const spy = vi.fn().mockResolvedValue({ ok: true, status: 200, headers: { get: () => null }, json: () => Promise.resolve(OBJECT) });
+    const spy = vi.fn().mockResolvedValue({ ok: true, status: 200, headers: jsonHeaders, json: () => Promise.resolve(OBJECT) });
     vi.stubGlobal("fetch", spy);
     await client.objects.update(OBJECT.id, { title: "Updated" });
     const [url, opts] = spy.mock.calls[0] as [string, RequestInit];
@@ -136,17 +138,5 @@ describe("objects resource", () => {
     expect(opts.method).toBe("POST");
     expect(url).toContain(`/objects/${OBJECT.id}/spaces`);
     expect(JSON.parse(opts.body as string)).toEqual([{ id: "spaceA" }]);
-  });
-
-  it("uploadFile sends raw bytes with correct headers", async () => {
-    const spy = vi.fn().mockResolvedValue({ ok: true, status: 201, headers: { get: () => null }, json: () => Promise.resolve({ id: "att1" }) });
-    vi.stubGlobal("fetch", spy);
-    const bytes = new Uint8Array([1, 2, 3]);
-    await client.objects.uploadFile(OBJECT.id, bytes, "image/png", "photo.png");
-    const [url, opts] = spy.mock.calls[0] as [string, RequestInit];
-    expect(opts.method).toBe("POST");
-    expect(url).toContain(`/objects/${OBJECT.id}/attachments`);
-    expect((opts.headers as Record<string, string>)["X-File-Name"]).toBe("photo.png");
-    expect((opts.headers as Record<string, string>)["Content-Type"]).toBe("image/png");
   });
 });

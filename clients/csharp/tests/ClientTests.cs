@@ -94,12 +94,12 @@ public class ClientTests
         {
             Id       = "id1",
             Title    = "Title",
-            Bumped   = "2024-01-01T00:00:00Z",
-            Created  = "2024-01-01T00:00:00Z",
-            Modified = "2024-01-01T00:00:00Z",
+            Bumped   = DateTime.Parse("2024-01-01T00:00:00Z"),
+            Created  = DateTime.Parse("2024-01-01T00:00:00Z"),
+            Modified = DateTime.Parse("2024-01-01T00:00:00Z"),
         };
         var (client, reqs) = MakeClient(_ => JsonResponse(stub, HttpStatusCode.Created));
-        await client.Objects.CreateAsync(new CreateObjectRequest { Url = "https://example.com" });
+        await client.Objects.CreateAsync(new CreateObjectRequest { Url = new Uri("https://example.com") });
         Assert.Equal(HttpMethod.Post, reqs[0].Method);
         var body = await reqs[0].Content!.ReadAsStringAsync();
         var parsed = JsonSerializer.Deserialize<JsonElement>(body);
@@ -157,7 +157,7 @@ public class ClientTests
             var res = ProblemResponse(429, "rate limited");
             res.Headers.Add("RateLimit", "\"burst\";r=0;t=0, \"sustained\";r=500;t=120");
             return res;
-        }, retryPolicy: new RetryPolicy { MaxRetries = 0, BufferMs = 0 });
+        }, retryPolicy: new RetryPolicy { MaxRetries = 0, BufferTime = TimeSpan.Zero });
 
         var ex = await Assert.ThrowsAsync<RateLimitedException>(() => client.Objects.ListAsync());
         Assert.Equal(2, ex.States.Length);
@@ -179,7 +179,7 @@ public class ClientTests
                 return fail;
             }
             return JsonResponse(new { objects = Array.Empty<object>() });
-        }, retryPolicy: new RetryPolicy { MaxRetries = 3, BufferMs = 0 });
+        }, retryPolicy: new RetryPolicy { MaxRetries = 3, BufferTime = TimeSpan.Zero });
 
         var result = await client.Objects.ListAsync();
         Assert.Equal(2, callCount);
@@ -234,10 +234,38 @@ public class ClientTests
     }
 }
 
+// HttpContent subclass that ignores Dispose so buffered bytes remain readable
+// after DispatchAsync's `using (request)` block ends.
+file sealed class UndisposableContent : HttpContent
+{
+    private readonly byte[] _data;
+    public UndisposableContent(byte[] data, string? contentType)
+    {
+        _data = data;
+        if (contentType is not null)
+            Headers.TryAddWithoutValidation("Content-Type", contentType);
+    }
+    protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+        stream.WriteAsync(_data, 0, _data.Length);
+    protected override bool TryComputeLength(out long length) { length = _data.Length; return true; }
+    protected override void Dispose(bool disposing) { /* intentionally no base call — keeps _disposed false */ }
+}
+
 file sealed class LambdaHandler : HttpMessageHandler
 {
     private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
     public LambdaHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) => _handler = handler;
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken _) =>
-        _handler(request);
+
+    // DispatchAsync wraps the request in `using`, disposing JsonContent before the test can read it.
+    // Buffer into a StringContent so it survives disposal.
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    {
+        if (request.Content is { } content)
+        {
+            var bytes = await content.ReadAsByteArrayAsync(ct);
+            var mediaType = content.Headers.ContentType?.ToString();
+            request.Content = new UndisposableContent(bytes, mediaType);
+        }
+        return await _handler(request);
+    }
 }

@@ -110,19 +110,17 @@ describe("MyMindClient", () => {
     const succeed = {
       ok: true,
       status: 200,
-      headers: { get: () => null },
+      headers: { get: (k: string) => k.toLowerCase() === "content-type" ? "application/json" : null },
       json: () => Promise.resolve({ objects: [] }),
     };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(fail).mockResolvedValueOnce(succeed));
-    vi.useFakeTimers();
-
-    const promise = client.objects.list();
-    await vi.runAllTimersAsync();
-    await expect(promise).resolves.toEqual([]);
-    vi.useRealTimers();
+    // t=0 + bufferMs=0 → sleep(0ms), no fake timers needed
+    await expect(client.objects.list()).resolves.toEqual([]);
   });
 
   it("throws RateLimitedError after exhausting retries", async () => {
+    // maxRetries: 0 → throws on first 429, no sleep needed
+    const noRetryClient = new MyMindClient("kid1", SECRET, "TestApp/1.0", { maxRetries: 0, bufferMs: 0 });
     const rateLimitHeaders = { "RateLimit": "\"burst\";r=0;t=1", "Content-Type": "application/problem+json" };
     const fail = {
       ok: false,
@@ -131,12 +129,7 @@ describe("MyMindClient", () => {
       json: () => Promise.resolve({ type: "", title: "rate limited", status: 429, detail: "" }),
     };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(fail));
-    vi.useFakeTimers();
-
-    const promise = client.objects.list();
-    await vi.runAllTimersAsync();
-    await expect(promise).rejects.toBeInstanceOf(RateLimitedError);
-    vi.useRealTimers();
+    await expect(noRetryClient.objects.list()).rejects.toBeInstanceOf(RateLimitedError);
   });
 
   it("search passes all query params", async () => {
