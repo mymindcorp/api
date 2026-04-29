@@ -53,9 +53,24 @@ private func jsonData(_ value: some Encodable) -> Data {
     try! JSONEncoder().encode(value)
 }
 
+// URLSession moves httpBody into httpBodyStream when routing through URLProtocol.
+private func bodyData(_ request: URLRequest) -> Data {
+    if let body = request.httpBody { return body }
+    guard let stream = request.httpBodyStream else { return Data() }
+    stream.open()
+    defer { stream.close() }
+    var data = Data()
+    var buffer = [UInt8](repeating: 0, count: 4096)
+    while stream.hasBytesAvailable {
+        let n = stream.read(&buffer, maxLength: buffer.count)
+        if n > 0 { data.append(contentsOf: buffer[..<n]) }
+    }
+    return data
+}
+
 // MARK: - Tests
 
-@Suite("MyMindClient request building")
+@Suite("MyMindClient request building", .serialized)
 struct ClientTests {
     @Test("Authorization header is Bearer JWT with three segments")
     func authHeader() async throws {
@@ -116,7 +131,7 @@ struct ClientTests {
         #expect(captured?.httpMethod == "POST")
         let ct = captured?.value(forHTTPHeaderField: "Content-Type") ?? ""
         #expect(ct.contains("application/json"))
-        let body = try JSONSerialization.jsonObject(with: captured!.httpBody!) as! [String: Any]
+        let body = try JSONSerialization.jsonObject(with: bodyData(captured!)) as! [String: Any]
         #expect(body["url"] as? String == "https://example.com")
     }
 
@@ -169,7 +184,7 @@ struct ClientTests {
             return (Data(), httpResponse(status: 204))
         }
         try await makeClient().objects.tag("id1", tags: [ObjectTag(name: "reading")])
-        let body = try JSONSerialization.jsonObject(with: captured!.httpBody!) as! [String: Any]
+        let body = try JSONSerialization.jsonObject(with: bodyData(captured!)) as! [String: Any]
         let tags = body["tags"] as! [[String: Any]]
         #expect(tags[0]["name"] as? String == "reading")
     }
