@@ -9,7 +9,7 @@ public final class SpacesService: Sendable {
         return try await client.send(.init(method: "GET", path: "/spaces"))
     }
 
-    public func create(_ params: CreateSpaceParams) async throws -> Space {
+    public func create(_ params: CreateSpaceRequest) async throws -> Space {
         let body = try client.jsonBody(params)
         return try await client.send(.init(method: "POST", path: "/spaces", body: body, contentType: "application/json"))
     }
@@ -18,7 +18,7 @@ public final class SpacesService: Sendable {
         return try await client.send(.init(method: "GET", path: "/spaces/\(id)"))
     }
 
-    public func update(_ id: Uid, _ params: UpdateSpaceParams) async throws -> Space {
+    public func update(_ id: Uid, _ params: UpdateSpaceRequest) async throws -> Space {
         let body = try client.jsonBody(params)
         return try await client.send(.init(method: "PATCH", path: "/spaces/\(id)", body: body, contentType: "application/json"))
     }

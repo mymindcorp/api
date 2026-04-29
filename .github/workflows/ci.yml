@@ -26,13 +26,13 @@ jobs:
           dotnet-quality: 'preview'
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore tests/MyMindClientTests.csproj
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build tests/MyMindClientTests.csproj --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test --configuration Release --no-build --logger "console;verbosity=normal"
+        run: dotnet test tests/MyMindClientTests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
 
   # --------------------------------------------------------------------------
   # TypeScript — runs on Ubuntu (Node 20)
@@ -50,11 +50,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: clients/typescript/package-lock.json
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm install
 
       - name: Type-check
         run: npm run typecheck

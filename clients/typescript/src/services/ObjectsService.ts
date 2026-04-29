@@ -142,4 +142,8 @@ export class ObjectsService {
       body: spaces,
     });
   }
+
+  async uploadFile(data: Uint8Array, contentType: string, filename: string, metadata: Omit<CreateObjectRequest, "blob"> = {}): Promise<MindObject> {
+    return this.create({ ...metadata, blob: { data, type: contentType, name: filename } });
+  }
 }
