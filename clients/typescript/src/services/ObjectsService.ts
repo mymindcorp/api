@@ -35,7 +35,7 @@ export class ObjectsService {
       );
       formData.append(
         "blob",
-        new globalThis.Blob([blob.data], { type: blob.type }),
+        new globalThis.Blob([blob.data.slice()], { type: blob.type }),
         blob.name,
       );
       return this.client.send<MindObject>({
