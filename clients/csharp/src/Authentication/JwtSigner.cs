@@ -17,9 +17,10 @@ internal static class JwtSigner
     /// <param name="secret">Base64-encoded 128-bit secret from the Extensions page.</param>
     /// <param name="method">HTTP method, uppercased.</param>
     /// <param name="path">Request path without query string.</param>
-    public static string Sign(string kid, string secret, string method, string path)
+    /// <param name="timeProvider">Source of the current time. Defaults to <see cref="TimeProvider.System"/>.</param>
+    public static string Sign(string kid, string secret, string method, string path, TimeProvider? timeProvider = null)
     {
-        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var now = (timeProvider ?? TimeProvider.System).GetUtcNow().ToUnixTimeSeconds();
 
         var header  = new { alg = "HS256", kid };
         var payload = new

@@ -2,6 +2,7 @@ using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Time.Testing;
 using MyMind.Authentication;
 using Xunit;
 
@@ -96,5 +97,35 @@ public class JwtSignerTests
         var a = JwtSigner.Sign(TestKid, TestSecret, "GET", "/objects");
         var b = JwtSigner.Sign(TestKid, TestSecret, "GET", "/spaces");
         Assert.NotEqual(a.Split('.')[2], b.Split('.')[2]);
+    }
+
+    [Fact]
+    public void Generates_Exact_Token_For_Fixed_Time()
+    {
+        var fixedTime = new DateTimeOffset(2026, 4, 29, 12, 34, 56, TimeSpan.Zero);
+        var fake = new FakeTimeProvider(fixedTime);
+
+        var jwt = JwtSigner.Sign(TestKid, TestSecret, "GET", "/objects", fake);
+
+        const string expected =
+            "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RrZXkwMSJ9" +
+            ".eyJtZXRob2QiOiJHRVQiLCJwYXRoIjoiL29iamVjdHMiLCJpYXQiOjE3Nzc0NjYwOTYsImV4cCI6MTc3NzQ2NjM5Nn0" +
+            ".-WMW4RjQUW-HpcA279EbMaXtHq95pc2OEA-JYoNSMpU";
+        Assert.Equal(expected, jwt);
+    }
+
+    [Fact]
+    public void Iat_And_Exp_Use_Supplied_TimeProvider()
+    {
+        var fixedTime = new DateTimeOffset(2026, 4, 29, 12, 34, 56, TimeSpan.Zero);
+        var fake = new FakeTimeProvider(fixedTime);
+
+        var jwt = JwtSigner.Sign(TestKid, TestSecret, "GET", "/objects", fake);
+
+        var (_, payloadSeg, _) = SplitJwt(jwt);
+        var payload = DecodeSegment(payloadSeg);
+
+        Assert.Equal(fixedTime.ToUnixTimeSeconds(),       payload["iat"].GetInt64());
+        Assert.Equal(fixedTime.ToUnixTimeSeconds() + 300, payload["exp"].GetInt64());
     }
 }
