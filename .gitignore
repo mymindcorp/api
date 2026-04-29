@@ -1,0 +1,21 @@
+# C# / .NET
+**/bin/
+**/obj/
+clients/csharp/artifacts/
+*.user
+*.suo
+
+# Swift
+clients/swift/.build/
+clients/swift/.swiftpm/
+clients/swift/Package.resolved
+
+# TypeScript / Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

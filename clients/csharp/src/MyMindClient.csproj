@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <RootNamespace>MyMind</RootNamespace>
+    <AssemblyName>MyMind.Api</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>MyMind.Api</PackageId>
+    <Authors>mymind</Authors>
+    <Description>Official .NET client for the mymind API.</Description>
+    <PackageProjectUrl>https://mymind.com</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>mymind;api;client</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MyMindClientTests" />
+  </ItemGroup>
+</Project>

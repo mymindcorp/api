@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # --------------------------------------------------------------------------
+  # C# (.NET 10) — runs on Ubuntu
+  # --------------------------------------------------------------------------
+  csharp:
+    name: C# tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clients/csharp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --logger "console;verbosity=normal"
+
+  # --------------------------------------------------------------------------
+  # TypeScript — runs on Ubuntu (Node 20)
+  # --------------------------------------------------------------------------
+  typescript:
+    name: TypeScript tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clients/typescript
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: clients/typescript/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+  # --------------------------------------------------------------------------
+  # Swift 6.0 — runs on macOS (Swift toolchain ships with Xcode)
+  # --------------------------------------------------------------------------
+  swift:
+    name: Swift tests
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: clients/swift
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Print Swift version
+        run: swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test
