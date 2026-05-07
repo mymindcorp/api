@@ -1,7 +1,7 @@
-import type { ObjectSpace, ObjectTag } from "../models/MindObject.js";
-
+/** Body for `PATCH /objects/:id`. Omitted fields are left untouched. */
 export interface UpdateObjectRequest {
+  /** New display title. */
   title?: string;
-  tags?: ObjectTag[];
-  spaces?: ObjectSpace[];
+  /** New summary. */
+  summary?: string;
 }
