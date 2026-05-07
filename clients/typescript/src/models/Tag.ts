@@ -1,10 +1,13 @@
-import type { Uid, Timestamp } from "./Scalars.js";
 import type { TagFlag } from "./TagFlag.js";
 
+/**
+ * A free-form label attached to one or more {@link MindObject}s.
+ * Tags have no separate identifier — they are referenced by name.
+ */
 export interface Tag {
-  id: Uid;
   name: string;
   count: number;
   flags: TagFlag;
-  modified: Timestamp;
+  /** ISO 8601 UTC timestamp of the last add/remove for this tag. */
+  modified: string;
 }

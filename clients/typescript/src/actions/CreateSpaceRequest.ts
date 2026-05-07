@@ -1,6 +1,7 @@
-import type { Color } from "../models/Scalars.js";
-
+/** Body for `POST /spaces`. */
 export interface CreateSpaceRequest {
+  /** Display name. Must be unique across your spaces. */
   name: string;
-  color?: Color;
+  /** Display color (CSS color value). If omitted, one is assigned automatically. */
+  color?: string;
 }

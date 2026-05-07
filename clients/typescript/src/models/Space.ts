@@ -1,13 +1,14 @@
-import type { Uid, Timestamp, Color } from "./Scalars.js";
-
 export interface SpaceObject {
-  id: Uid;
+  id: string;
 }
 
 export interface Space {
-  id: Uid;
+  id: string;
+  /** Display name. Unique across the user's spaces. */
   name: string;
-  color: Color;
-  created: Timestamp;
+  /** Display color — any valid CSS color value, typically a hex code. */
+  color: string;
+  /** ISO 8601 UTC timestamp of when the space was created. */
+  created: string;
   objects: SpaceObject[];
 }

@@ -1,6 +1,6 @@
-import type { Color } from "../models/Scalars.js";
-
+/** Body for `PATCH /spaces/:id`. Omitted fields are left untouched. */
 export interface UpdateSpaceRequest {
   name?: string;
-  color?: Color;
+  /** CSS color value. */
+  color?: string;
 }
