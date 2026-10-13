@@ -109,6 +109,8 @@ POST /objects        10–250 credits
 | title | string | Display title. If omitted, it's extracted from the url or content. |
 | spaces | [ObjectSpace](#objectspace)[] | Spaces to add the object to on creation. |
 | tags | [ObjectTag](#objecttag)[] | Tags to attach on creation. |
+| notes | object[] | Notes to attach on creation, each `{ "content": { "type": "application/prose+json", "body": <prose document> } }` — the same document format as [Create an object note](#create-an-object-note). |
+| remoteId | string | Client-minted identity for this create (a UUID string), for retry deduplication — see [Response — repeated remoteId](#response--repeated-remoteid-existing-object-returned-200-ok). The server still mints the object's `id`; `remoteId` is correlated with it, never adopted as it. |
 | blob (multipart only) | binary | Raw file bytes sent alongside the metadata. Only valid when the request is `multipart/form-data` — encode the metadata JSON as the `metadata` part and the bytes as the `blob` part. Capped at 64 MB. See [supported formats](supported-formats.md). |
 | content | string \| [Content](types.md#content) | The content body. Pass a plain string or a structured Content object. |
 | url | string | A remote URL to save. |
@@ -148,6 +150,10 @@ Provide exactly one of `blob`, `content`, or `url` — combining them returns 40
 ```
 
 If the request body resolves to a blob that already exists in your mind — the same URL, the same content body, or a byte-identical upload — the API returns the existing object instead of creating a duplicate, refreshes its `bumped` timestamp, and responds with `200 OK` rather than `201 Created`.
+
+#### Response — repeated remoteId, existing object returned 200 OK
+
+Repeating a create with the same `remoteId` returns the object the first attempt created, with `200 OK` rather than `201 Created` — whether or not the content would dedupe on its own. This is what makes a retried create safe for content that content-dedupe can't catch (two text bodies that differ, for example): a client that queues creates mints a UUID per queued item, sends it as `remoteId` on every attempt, and any attempt that reaches the server resolves onto the same object.
 
 ### Get an object
 
